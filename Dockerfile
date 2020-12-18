@@ -1,10 +1,13 @@
-FROM node:14-alpine
+FROM python:3.8
 
 WORKDIR /app
 COPY package.json ./
-RUN yarn install
+RUN apt-get update && apt-get install -y \
+    python3-pip yarn
 
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
 COPY src src
 COPY public public
 
-CMD ["yarn", "start"]
+CMD ["python3", "public/main.py"]

@@ -2,12 +2,15 @@
 version: "3.7"
 services:
   webclient:
-    build: ./webclient
+    build: .
     ports:
-      - 3001:3000
+      - 3001:5000
     volumes:
-      - ./webclient/src:/app/src
-      - ./webclient/public:/app/public
+      - ./src:/app/src
+      - ./public:/app/public
     environment:
       - NODE_ENV=development
+      - FLASK_APP=public/main.py
+      - APP_SETTINGS=config.DevelopmentConfig
+      - DATABASE_URL=postgres://postgres:vrqLs08CazD0j6l8@35.194.8.164:5432
     tty: true
