@@ -8,7 +8,7 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 db = SQLAlchemy(app)
 
 from models import Company, Investor, Investment
-from shortest_path import InvestorGraph
+from shortest_path import ShortestPathInvestor
 
 
 @app.route('/')
@@ -75,7 +75,7 @@ def search(investor_id):
     search_results = dict()
     investors = Investor.query.filter(Investor.name.like(f'%{search_string}%')).all()
     print(f'Found {len(investors)} investors matching search')
-    graph = InvestorGraph(investor, set(investors))
+    graph = ShortestPathInvestor(investor, set(investors))
     graph.run_expanding_dijkstra()
     for investor in investors:
         search_results.update({investor.id: graph.get_connection_degree(investor)})

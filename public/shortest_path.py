@@ -10,7 +10,7 @@ db = SQLAlchemy(app)
 from models import Investor, Investment
 
 
-class InvestorGraph:
+class ShortestPathInvestor:
     def __init__(self, source_investor: Investor, destination_investors: set):
         self._destination_investors = destination_investors
         self._source = source_investor
@@ -30,27 +30,34 @@ class InvestorGraph:
         while any([self._graph[self._source.id][dest.id] == sys.maxsize
                    for dest in self._destination_investors]):
             print(f'Not finished -- getting next level...')
-            next_investors = self._get_next_level(next_investors)
+            next_investors = self._add_next_level(next_investors)
             print(f'     {sorted(list(next_investors), key=lambda i: i.id)}')
             if not next_investors:
                 break
-            self._run_dijkstra(visited_ids, next_investors)
+            self._run_dijkstra(visited_ids)
         print('Filled all investors: ')
         for d in self._destination_investors:
             print(f'{self._source.id} -> {d.id} ===> '
                   f'{self._graph[self._source.id][d.id]}')
 
-    def _get_next_level(self, investors: set):
+    def _add_next_level(self, investors: set):
         next_level = set()
         for i in investors:
-            next_level.update(self._first_degree_connections(i))
-        print(f'     {sorted(list(next_level), key=lambda i: i.id)} - {sorted(list(self._all_investors), key=lambda i: i.id)}')
+            new_investors = self._first_degree_connections(i)
+            next_level.update(new_investors)
+            for j in new_investors:
+                self._add_investor(j, i)
+            print(f'     {sorted(list(next_level), key=lambda i: i.id)} - {sorted(list(self._all_investors), key=lambda i: i.id)}')
+            self._all_investors.update(new_investors)
+            print(f'Updated graph: {self._graph[self._source.id]}')
         next_level = next_level.difference(self._all_investors)
         print(f'     equals {sorted(list(next_level), key=lambda i: i.id)}')
         return next_level
 
     @staticmethod
     def _first_degree_connections(investor: Investor):
+        # This really should be reused in a more generic way,
+        #   but in the interest of time, I'm just running with the duplication.
         investments = db.session.query(Investment).filter_by(investor_id=investor.id)
         companies = [i.company for i in investments]
 
@@ -61,13 +68,7 @@ class InvestorGraph:
 
         return first_connections
 
-    def _run_dijkstra(self, visited_ids: list, new_investors: set=None):
-        if new_investors:
-            for i in new_investors:
-                self._add_investor(i)
-            self._all_investors = self._all_investors.union(new_investors)
-            print(f'Updated graph: {self._graph[self._source.id]}')
-
+    def _run_dijkstra(self, visited_ids: list):
         for i in self._all_investors:
             u = self._min_distance(i.id, visited_ids)
             visited_ids.append(u)
@@ -81,12 +82,11 @@ class InvestorGraph:
                         self._graph[j.id][self._source.id] = new_distance
 
     def _min_distance(self, src_id, visited_ids):
+
         min = sys.maxsize
         min_index = None
         dist = self._graph[src_id]
 
-        # Search not nearest vertex not in the
-        # shortest path tree
         for i in self._all_investors:
             if dist[i.id] < min and i.id not in visited_ids:
                 min = dist[i.id]
@@ -100,10 +100,15 @@ class InvestorGraph:
             for investor in self._all_investors} for i in self._all_investors}
         return graph
 
-    def _add_investor(self, investor: Investor):
-        self._graph.update({
-            investor.id: {
-                i.id: 0 if investor.id == i.id else sys.maxsize
-                for i in self._all_investors}})
-        for c in self._all_investors:
-            self._graph[c.id].update({investor.id: sys.maxsize})
+    def _add_investor(self, investor: Investor, src_investor: Investor):
+        if investor.id not in self._graph:
+            self._graph.update({
+                investor.id: {
+                    i.id: 0 if investor.id == i.id else sys.maxsize
+                    for i in self._all_investors}})
+            for c in self._all_investors:
+                self._graph[c.id].update({investor.id: sys.maxsize})
+
+        # Add the one step that caused the addition of the new investor
+        self._graph[investor.id][src_investor.id] = 1
+        self._graph[src_investor.id][investor.id] = 1

@@ -1,0 +1,11 @@
+setup:
+  addons:
+    - plan: 'papertrail:choklad'
+      as: PAPERTRAIL
+    - plan: 'heroku-postgresql:hobby-basic'
+      as: DATABASE
+build:
+  docker:
+    web: Dockerfile
+run:
+  web: python3 /app/public/main.py

@@ -29,7 +29,8 @@ class Investor(db.Model):
 
     companies = db.relationship("Company", secondary="investment", lazy="joined")
 
-    def __init__(self, name, photo_large=None, photo_thumbnail=None):
+    def __init__(self, id, name, photo_large=None, photo_thumbnail=None):
+        self.id = id
         self.name = name
         self.photo_large = photo_large
         self.photo_thumbnail = photo_thumbnail
@@ -63,7 +64,8 @@ class Company(db.Model):
 
     investors = db.relationship("Investor", secondary="investment", lazy="joined")
 
-    def __init__(self, name):
+    def __init__(self, id, name):
+        self.id = id
         self.name = name
         self.updated_at = datetime.utcnow()
 
@@ -99,7 +101,8 @@ class Investment(db.Model):
     investor = db.relationship("Investor", backref=db.backref("investments"), lazy="joined")
     company = db.relationship("Company", backref=db.backref("investments"), lazy="joined")
 
-    def __init__(self, investor: Investor, company: Company, amount=None):
+    def __init__(self, id, investor: Investor, company: Company, amount=None):
+        self.id = id
         self.amount = amount
         self.investor_id = investor.id
         self.company_id = company.id
