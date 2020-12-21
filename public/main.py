@@ -19,7 +19,7 @@ def hello():
 def _first_degree_connections(investor_id):
     investor = Investor.query.filter_by(id=investor_id).first()
     if not investor:
-        return list()
+        return set()
     companies = investor.companies
 
     first_connections = set()
